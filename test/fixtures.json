@@ -1,0 +1,87 @@
+{
+  "localKey": "k3yF0rT3st5=0nly",
+  "uuid": "tuya0123456789ab",
+  "deviceId": "ebtestdevice0001",
+  "srand": "0102030405ff",
+  "iv": "000102030405060708090a0b0c0d0e0f",
+  "loginKey": "60e5b7df014737d519153e80801d4063",
+  "sessionKey": "0d3bc78bae0bfcfddb665f9671665de1",
+  "md5": {
+    "": "d41d8cd98f00b204e9800998ecf8427e",
+    "abc": "900150983cd24fb0d6963f7d28e17f72",
+    "The quick brown fox jumps over the lazy dog": "9e107d9d372bb6826bd81d3542a419d6",
+    "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx": "30a83621ce5422fbdfdd539777458c78"
+  },
+  "crc16": {
+    "": 65535,
+    "313233343536373839": 19255,
+    "00000001000000000000000000": 11858
+  },
+  "packets": {
+    "deviceInfo": [
+      "00213004000102030405060708090a0b0c0d0e0f",
+      "01d04487dd5da1eeb04839be0279229559"
+    ],
+    "pair": [
+      "00513005000102030405060708090a0b0c0d0e0f",
+      "0144ccf42507b1f270722735e75b677dffd2d8e4",
+      "02456cd3c5d1d598dba3ef2f15ee0a214d4ac943",
+      "03d8e2960192c1534c0823f0ef162402992e34e1",
+      "048f521e2665dd93"
+    ],
+    "status": [
+      "00213005000102030405060708090a0b0c0d0e0f",
+      "012ec42e282517563a3c60ad1bae82f89e"
+    ],
+    "dps": [
+      "00313005000102030405060708090a0b0c0d0e0f",
+      "012d095ad3e9074050c36069b9a148757fff6ee2",
+      "0270ddf269be463209864d979de4"
+    ],
+    "dpsLong": [
+      "00313005000102030405060708090a0b0c0d0e0f",
+      "019e0d8a0b389578bc957ab5f4b40129da8a7d2e",
+      "02bc18aada086845f850a50a6d18"
+    ],
+    "timeReply": [
+      "00313005000102030405060708090a0b0c0d0e0f",
+      "01d1df7412481b7b456da3ad991c635c103fad08",
+      "0232749a3e5ddc3dd56f197748da"
+    ]
+  },
+  "deviceMessages": {
+    "dpReport": {
+      "fragments": [
+        "00313005000102030405060708090a0b0c0d0e0f",
+        "018affbad823558893fb0d8187219e82ccfbca1f",
+        "020675cbc3e3c71945d7befeeb44"
+      ],
+      "seq": 7,
+      "dps": [
+        [
+          8,
+          4,
+          0
+        ],
+        [
+          2,
+          1,
+          false
+        ],
+        [
+          10,
+          2,
+          3
+        ]
+      ]
+    },
+    "pairOk": {
+      "fragments": [
+        "00213005000102030405060708090a0b0c0d0e0f",
+        "01ecce2f1d4c992b03f8ad5191ff4dc86d"
+      ],
+      "seq": 20,
+      "responseTo": 2
+    }
+  }
+}

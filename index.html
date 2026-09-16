@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#101418">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Fingerbot">
+  <title>Fingerbot</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icon.svg">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="app">
+    <header class="top">
+      <h1>Fingerbot</h1>
+      <button id="settings-button" class="icon-button" type="button" aria-label="Settings">&#9881;</button>
+    </header>
+
+    <section id="support-warning" class="notice warning" hidden>
+      <strong>This browser has no Web Bluetooth.</strong>
+      <p>On an iPhone open this page in the free <em>Bluefy</em> app (App Store). On Android use Chrome.</p>
+    </section>
+
+    <section id="setup-notice" class="notice" hidden>
+      <strong>Enter your Fingerbot's keys first.</strong>
+      <p>Tap the gear and fill in the device id, uuid and local key from the Tuya IoT platform.</p>
+    </section>
+
+    <section class="press-area">
+      <button id="press-button" class="press-button" type="button">
+        <span class="press-label">Press</span>
+        <span id="press-sub" class="press-sub">single press</span>
+      </button>
+    </section>
+
+    <section class="cycle card">
+      <div class="cycle-head">
+        <div>
+          <div class="card-title">One-hour cycle</div>
+          <div id="cycle-summary" class="muted">Presses every 12 minutes for 60 minutes</div>
+        </div>
+        <button id="cycle-button" class="cycle-button" type="button">Start</button>
+      </div>
+      <div id="cycle-status" class="cycle-status" hidden>
+        <div class="big" id="cycle-countdown">--:--</div>
+        <div class="muted" id="cycle-detail"></div>
+        <ol id="cycle-dots" class="dots" aria-label="Presses"></ol>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="row">
+        <div>
+          <div class="card-title">Bluetooth</div>
+          <div id="device-line" class="muted">No Fingerbot chosen yet</div>
+        </div>
+        <button id="pair-button" class="secondary" type="button">Pair Fingerbot</button>
+      </div>
+    </section>
+
+    <section id="status-line" class="status" aria-live="polite"></section>
+
+    <details class="log-box">
+      <summary>Log</summary>
+      <pre id="log"></pre>
+    </details>
+  </main>
+
+  <dialog id="settings">
+    <form method="dialog" id="settings-form">
+      <h2>Settings</h2>
+      <p class="muted">Values from the Tuya IoT platform's device details. They are stored only in this browser.</p>
+      <label>Device id <input name="deviceId" autocomplete="off" autocapitalize="off" spellcheck="false" required placeholder="eb…"></label>
+      <label>UUID <input name="uuid" autocomplete="off" autocapitalize="off" spellcheck="false" required placeholder="tuya…" minlength="16" maxlength="16"></label>
+      <label>Local key <input name="localKey" autocomplete="off" autocapitalize="off" spellcheck="false" required placeholder="16 characters"></label>
+      <h3>Cycle</h3>
+      <div class="two">
+        <label>Length (minutes) <input name="durationMinutes" type="number" min="1" step="any" value="60" required></label>
+        <label>Every (minutes) <input name="intervalMinutes" type="number" min="0.01" step="any" value="12" required></label>
+      </div>
+      <label class="check"><input name="pressAtStart" type="checkbox" checked> Press right when the cycle starts</label>
+      <div class="buttons">
+        <button type="button" id="forget-device" class="secondary">Forget Bluetooth device</button>
+        <span class="spacer"></span>
+        <button type="button" id="settings-cancel" class="secondary">Cancel</button>
+        <button type="submit" value="save">Save</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>

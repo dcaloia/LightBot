@@ -1,0 +1,6 @@
+node_modules/
+__pycache__/
+*.pyc
+.DS_Store
+# Never commit real device keys; the page keeps them in the browser's localStorage.
+config.json
