@@ -10,7 +10,7 @@
 // This file is public along with the rest of the site. The local key is only useful
 // to someone within Bluetooth range of the Fingerbot.
 export const DEFAULT_CREDENTIALS = Object.freeze({
-  deviceId: '',
-  uuid: '',
-  localKey: '',
+  deviceId: 'eb6bbevcvukoknve',
+  uuid: 'tuyac7e02aa38d5a',
+  localKey: "k[J)8V.Jj{-NBKjl",
 });
