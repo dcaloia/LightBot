@@ -42,6 +42,8 @@ export class FakeFingerbot {
       [11, { type: DpType.BOOL, value: false }],
       [15, { type: DpType.VALUE, value: 0 }],
       [17, { type: DpType.BOOL, value: false }],
+      [12, { type: DpType.VALUE, value: 87 }],
+      [121, { type: DpType.RAW, value: Uint8Array.of(0, 1, 0, 0, 100, 1, 0) }],
     ]);
     this.paired = false;
     this.busy = Promise.resolve();

@@ -1,13 +1,13 @@
 // The page: wires the Press button and the one-hour cycle to the Fingerbot over Web
 // Bluetooth. Keys live in this browser's localStorage only.
 
-import { WebBluetoothTransport, NoDeviceError, describeError } from './web-bluetooth.js?v=20260916-7';
-import { Fingerbot } from './fingerbot.js?v=20260916-7';
-import { CycleRunner } from './cycle.js?v=20260916-7';
-import { DEFAULT_CREDENTIALS } from './config.js?v=20260916-7';
+import { WebBluetoothTransport, NoDeviceError, describeError } from './web-bluetooth.js?v=20260916-8';
+import { Fingerbot } from './fingerbot.js?v=20260916-8';
+import { CycleRunner } from './cycle.js?v=20260916-8';
+import { DEFAULT_CREDENTIALS } from './config.js?v=20260916-8';
 
 // Bump on every deploy; shown in the footer and the log so a stale cached copy is obvious.
-export const APP_VERSION = '20260916-7';
+export const APP_VERSION = '20260916-8';
 
 const CREDS_KEY = 'fingerbot.credentials';
 const CYCLE_SETTINGS_KEY = 'fingerbot.cycleSettings';
@@ -24,6 +24,7 @@ const el = {
   cycleDetail: $('cycle-detail'),
   cycleDots: $('cycle-dots'),
   pair: $('pair-button'),
+  readSettings: $('read-settings'),
   deviceLine: $('device-line'),
   status: $('status-line'),
   log: $('log'),
@@ -265,6 +266,7 @@ function render() {
   el.deviceLine.textContent = transport.deviceName ? `Paired with ${transport.deviceName}` : 'No Fingerbot chosen yet';
   el.pair.textContent = transport.deviceName ? 'Change device' : 'Pair Fingerbot';
   el.pair.disabled = !supported;
+  el.readSettings.disabled = !ready || busy;
 
   const s = cycle.state;
   const every = cycleSettings.intervalMinutes;
@@ -369,6 +371,37 @@ el.forgetDevice.addEventListener('click', () => {
 
 el.press.addEventListener('click', () => {
   doPress('manual').catch((err) => log(`Press failed: ${describeError(err)}`));
+});
+
+el.readSettings.addEventListener('click', async () => {
+  if (!supported) {
+    setStatus('This browser has no Web Bluetooth.', 'error');
+    return;
+  }
+  if (!bot) {
+    setStatus('Enter the device keys in Settings first.', 'error');
+    return;
+  }
+  try {
+    await ensureDevice({ mayPrompt: true });
+  } catch (err) {
+    setStatus(describeError(err), 'error');
+    return;
+  }
+  busy = true;
+  render();
+  setStatus('Reading device settings…');
+  document.querySelector('.log-box')?.setAttribute('open', '');
+  try {
+    await bot.readSettings();
+    setStatus('Read the device settings; see the Log below.', 'ok');
+  } catch (err) {
+    setStatus(describeError(err), 'error');
+    log(`Read settings failed: ${describeError(err)}`);
+  } finally {
+    busy = false;
+    render();
+  }
 });
 
 el.pair.addEventListener('click', () => {

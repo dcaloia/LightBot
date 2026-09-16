@@ -297,6 +297,27 @@ async function run() {
       console.log('ok - characteristics chosen by capability');
     }
 
+    // 4f. Read device settings dumps every datapoint, program included, as hex.
+    {
+      const storage = {
+        'fingerbot.credentials': JSON.stringify(TEST_CREDENTIALS),
+        'fingerbot.bluetoothDeviceId': 'fake-fingerbot-id',
+      };
+      const { page, errors, context } = await newPage(browser, { storage, options: { remembered: true } });
+      await page.goto(BASE);
+      await page.waitForFunction(() => window.__fakeBluetooth);
+      await page.click('#read-settings');
+      await page.waitForFunction(() => document.querySelector('#status-line').textContent.startsWith('Read the device settings'), null, { timeout: 15000 });
+      const logText = await page.locator('#log').textContent();
+      assert.match(logText, /Device settings \(\d+ datapoints/);
+      assert.match(logText, /DP 8 mode \[enum\] = 0/);
+      assert.match(logText, /DP 12 battery % \[value\] = 87/);
+      assert.match(logText, /DP 121 program \[raw\] = raw 00010000640100/);
+      assert.deepEqual(errors, []);
+      await context.close();
+      console.log('ok - read device settings dumps datapoints');
+    }
+
     // 5. Wrong local key: the press fails visibly, nothing gets pressed.
     {
       const storage = {

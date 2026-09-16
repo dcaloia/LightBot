@@ -4,7 +4,7 @@
 // on iPhone (Safari itself has no Web Bluetooth). GitHub Pages is HTTPS, which the
 // API requires.
 
-import { SERVICE_UUID, CHARACTERISTIC_NOTIFY, CHARACTERISTIC_WRITE } from './tuya-ble.js?v=20260916-7';
+import { SERVICE_UUID, CHARACTERISTIC_NOTIFY, CHARACTERISTIC_WRITE } from './tuya-ble.js?v=20260916-8';
 
 const STORAGE_KEY = 'fingerbot.bluetoothDeviceId';
 
