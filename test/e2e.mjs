@@ -82,6 +82,23 @@ async function run() {
       console.log('ok - setup link, manual press, pairing');
     }
 
+    // 1b. The setup-code form after "?" also works, and the query string is cleared.
+    {
+      const { page, errors, context } = await newPage(browser);
+      const code = Buffer.from(JSON.stringify({ id: TEST_CREDENTIALS.deviceId, uuid: TEST_CREDENTIALS.uuid, key: TEST_CREDENTIALS.localKey })).toString('base64url');
+      await page.goto(`${BASE}?s=${code}`);
+      await page.waitForFunction(() => window.__fakeBluetooth);
+      assert.equal(await page.evaluate(() => location.search + location.hash), '');
+      assert.deepEqual(await page.evaluate(() => JSON.parse(localStorage.getItem('fingerbot.credentials'))), TEST_CREDENTIALS);
+      assert.equal(await page.locator('#press-button').isEnabled(), true);
+      // The page's own encoder produces the same code.
+      const encoded = await page.evaluate(async (c) => (await import('/app.js')).encodeSetupCode(c), TEST_CREDENTIALS);
+      assert.equal(encoded, code);
+      assert.deepEqual(errors, []);
+      await context.close();
+      console.log('ok - setup code in the query string');
+    }
+
     // 2. A short cycle: 0.06 min long, every 0.02 min -> presses at 0, 1.2 s, 2.4 s.
     {
       const storage = {

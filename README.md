@@ -19,9 +19,13 @@ Two things it does:
      from the App Store and open the page in it. Add it to the home screen from
      there if you like.
 2. Tap the gear and enter the three keys for your Fingerbot (see below), or open a
-   one-tap setup link of the form
-   `https://dcaloia.github.io/LightBot/#id=DEVICE_ID&uuid=UUID&key=LOCAL_KEY`.
-   The keys are saved in that browser only; the part after `#` never leaves the phone.
+   one-tap setup link. Two forms work:
+   `https://dcaloia.github.io/LightBot/#id=DEVICE_ID&uuid=UUID&key=LOCAL_KEY`, or
+   `https://dcaloia.github.io/LightBot/?s=SETUP_CODE` where the setup code is the
+   base64url encoding of `{"id":"…","uuid":"…","key":"…"}` (letters and digits only,
+   so no address bar rewrites it; `#s=` works too). The keys are saved in that
+   browser only. The part after `#` never leaves the phone; a `?s=` code does reach
+   GitHub's server logs, so prefer `#` where the browser keeps it.
 3. Tap **Pair Fingerbot** (or just **Press**). The browser shows nearby Bluetooth
    devices; pick the Fingerbot. Chrome remembers it for next time.
 4. **Press** to press once. **Start** to run the one-hour cycle.

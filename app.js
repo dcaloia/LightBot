@@ -68,18 +68,48 @@ function writeJson(key, value) {
   }
 }
 
-// A one-tap setup link can carry the keys in the URL fragment, which never leaves the
-// phone: index.html#id=DEVICE_ID&uuid=UUID&key=LOCAL_KEY
-function credentialsFromHash() {
-  const hash = location.hash.replace(/^#/, '');
-  if (!hash) return null;
-  const params = new URLSearchParams(hash);
+// A one-tap setup link can carry the keys in the URL. Two forms are accepted, after
+// either "#" (never leaves the phone) or "?" (survives address bars that mangle "#"):
+//   ...#id=DEVICE_ID&uuid=UUID&key=LOCAL_KEY
+//   ...?s=SETUP_CODE   where the code is base64url of {"id","uuid","key"}, so it is
+//                      only letters, digits, "-" and "_", and no browser rewrites it.
+function decodeBase64Url(text) {
+  const b64 = text.replace(/-/g, '+').replace(/_/g, '/').padEnd(Math.ceil(text.length / 4) * 4, '=');
+  const bin = atob(b64);
+  return new TextDecoder().decode(Uint8Array.from(bin, (c) => c.charCodeAt(0)));
+}
+
+export function encodeSetupCode({ deviceId, uuid, localKey }) {
+  const bytes = new TextEncoder().encode(JSON.stringify({ id: deviceId, uuid, key: localKey }));
+  return btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+function credentialsFromParams(params) {
+  const code = params.get('s');
+  if (code) {
+    try {
+      const o = JSON.parse(decodeBase64Url(code));
+      return { deviceId: o.id, uuid: o.uuid, localKey: o.key };
+    } catch {
+      return null;
+    }
+  }
   const deviceId = params.get('id');
   const uuid = params.get('uuid');
   const localKey = params.get('key');
-  if (!deviceId || !uuid || !localKey) return null;
-  history.replaceState(null, '', location.pathname + location.search);
-  return { deviceId, uuid, localKey };
+  return deviceId && uuid && localKey ? { deviceId, uuid, localKey } : null;
+}
+
+function credentialsFromUrl() {
+  for (const raw of [location.hash.replace(/^#/, ''), location.search.replace(/^\?/, '')]) {
+    if (!raw) continue;
+    const c = credentialsFromParams(new URLSearchParams(raw));
+    if (validCredentials(c)) {
+      history.replaceState(null, '', location.pathname);
+      return c;
+    }
+  }
+  return null;
 }
 
 function validCredentials(c) {
@@ -89,7 +119,7 @@ function validCredentials(c) {
 // ---------------------------------------------------------------------------
 // State
 
-let credentials = credentialsFromHash();
+let credentials = credentialsFromUrl();
 if (credentials) {
   writeJson(CREDS_KEY, credentials);
   log('Keys loaded from the setup link');
