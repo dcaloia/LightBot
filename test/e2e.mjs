@@ -46,7 +46,7 @@ const fakeState = (page) =>
   page.evaluate(async () => {
     await window.__fakeReady;
     const s = window.__fakeBluetooth;
-    return { presses: s.fingerbot.presses.length, mode: s.fingerbot.mode, requestDeviceCalls: s.requestDeviceCalls, connects: s.device.connects, connected: s.device.gatt.connected };
+    return { presses: s.fingerbot.presses.length, mode: s.fingerbot.mode, program: s.fingerbot.programHex(), requestDeviceCalls: s.requestDeviceCalls, connects: s.device.connects, connected: s.device.gatt.connected };
   });
 
 async function run() {
@@ -316,6 +316,40 @@ async function run() {
       assert.deepEqual(errors, []);
       await context.close();
       console.log('ok - read device settings dumps datapoints');
+    }
+
+    // 4g. The on-device program: write a 20 s test loop and switch to program mode.
+    {
+      const storage = {
+        'fingerbot.credentials': JSON.stringify(TEST_CREDENTIALS),
+        'fingerbot.bluetoothDeviceId': 'fake-fingerbot-id',
+      };
+      const { page, errors, context } = await newPage(browser, { storage, options: { remembered: true } });
+      await page.goto(BASE);
+      await page.waitForFunction(() => window.__fakeBluetooth);
+      await page.click('#prog-test');
+      await page.waitForFunction(() => document.querySelector('#status-line').textContent.startsWith('Program running'), null, { timeout: 15000 });
+      let s = await fakeState(page);
+      // Fake's stored program starts 00 01 00 ...; header kept, then 2 steps:
+      // 100% for 1, then 0% for 20 (0x0014). => 000100 02 640001 000014
+      assert.equal(s.program, '00010002640001000014', 'writes the program with the header preserved');
+      assert.equal(s.mode, 2, 'device put into program mode');
+
+      // Stop returns it to click mode.
+      await page.click('#prog-stop');
+      await page.waitForFunction(() => document.querySelector('#status-line').textContent.startsWith('Program stopped'), null, { timeout: 15000 });
+      s = await fakeState(page);
+      assert.equal(s.mode, 0, 'back to click mode');
+
+      // The full-interval Start uses the Every field.
+      await page.fill('#prog-interval', '720');
+      await page.click('#prog-start');
+      await page.waitForFunction(() => document.querySelector('#status-line').textContent.startsWith('Program running'), null, { timeout: 15000 });
+      s = await fakeState(page);
+      assert.equal(s.program, '000100026400010002d0', '720 s = 0x02D0');
+      assert.deepEqual(errors, []);
+      await context.close();
+      console.log('ok - writes a repeating program and stops it');
     }
 
     // 5. Wrong local key: the press fails visibly, nothing gets pressed.

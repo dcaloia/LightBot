@@ -1,13 +1,13 @@
 // The page: wires the Press button and the one-hour cycle to the Fingerbot over Web
 // Bluetooth. Keys live in this browser's localStorage only.
 
-import { WebBluetoothTransport, NoDeviceError, describeError } from './web-bluetooth.js?v=20260916-8';
-import { Fingerbot } from './fingerbot.js?v=20260916-8';
-import { CycleRunner } from './cycle.js?v=20260916-8';
-import { DEFAULT_CREDENTIALS } from './config.js?v=20260916-8';
+import { WebBluetoothTransport, NoDeviceError, describeError } from './web-bluetooth.js?v=20260916-9';
+import { Fingerbot } from './fingerbot.js?v=20260916-9';
+import { CycleRunner } from './cycle.js?v=20260916-9';
+import { DEFAULT_CREDENTIALS } from './config.js?v=20260916-9';
 
 // Bump on every deploy; shown in the footer and the log so a stale cached copy is obvious.
-export const APP_VERSION = '20260916-8';
+export const APP_VERSION = '20260916-9';
 
 const CREDS_KEY = 'fingerbot.credentials';
 const CYCLE_SETTINGS_KEY = 'fingerbot.cycleSettings';
@@ -25,6 +25,11 @@ const el = {
   cycleDots: $('cycle-dots'),
   pair: $('pair-button'),
   readSettings: $('read-settings'),
+  progDepth: $('prog-depth'),
+  progInterval: $('prog-interval'),
+  progTest: $('prog-test'),
+  progStart: $('prog-start'),
+  progStop: $('prog-stop'),
   deviceLine: $('device-line'),
   status: $('status-line'),
   log: $('log'),
@@ -267,6 +272,7 @@ function render() {
   el.pair.textContent = transport.deviceName ? 'Change device' : 'Pair Fingerbot';
   el.pair.disabled = !supported;
   el.readSettings.disabled = !ready || busy;
+  for (const b of [el.progTest, el.progStart, el.progStop]) b.disabled = !ready || busy;
 
   const s = cycle.state;
   const every = cycleSettings.intervalMinutes;
@@ -403,6 +409,54 @@ el.readSettings.addEventListener('click', async () => {
     render();
   }
 });
+
+async function runProgramAction(work, workingStatus) {
+  if (!supported) {
+    setStatus('This browser has no Web Bluetooth.', 'error');
+    return;
+  }
+  if (!bot) {
+    setStatus('Enter the device keys in Settings first.', 'error');
+    return;
+  }
+  try {
+    await ensureDevice({ mayPrompt: true });
+  } catch (err) {
+    setStatus(describeError(err), 'error');
+    return;
+  }
+  busy = true;
+  render();
+  setStatus(workingStatus);
+  document.querySelector('.log-box')?.setAttribute('open', '');
+  try {
+    await work();
+  } catch (err) {
+    setStatus(describeError(err), 'error');
+    log(`${workingStatus} failed: ${describeError(err)}`);
+  } finally {
+    busy = false;
+    render();
+  }
+}
+
+function startOnDeviceProgram(intervalSeconds) {
+  const depth = Math.max(0, Math.min(100, Number(el.progDepth.value) || 100));
+  const interval = Math.max(1, Math.round(intervalSeconds));
+  return runProgramAction(async () => {
+    await bot.writeProgram({ downPosition: depth, intervalDelay: interval, start: true });
+    setStatus(`Program running on the device: press every ${interval} s. Close this page if you like; tap Stop to end it.`, 'ok');
+  }, 'Writing program to the device…');
+}
+
+el.progTest.addEventListener('click', () => startOnDeviceProgram(20));
+el.progStart.addEventListener('click', () => startOnDeviceProgram(Number(el.progInterval.value) || 720));
+el.progStop.addEventListener('click', () =>
+  runProgramAction(async () => {
+    await bot.stopProgram();
+    setStatus('Program stopped; the Fingerbot is back to single-press mode.', 'ok');
+  }, 'Stopping the program…'),
+);
 
 el.pair.addEventListener('click', () => {
   pickDevice().then(

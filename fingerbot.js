@@ -5,8 +5,8 @@
 //   write(Uint8Array)  -> one GATT fragment to the write characteristic
 //   disconnect()
 
-import { DpType, TuyaBleSession, TuyaBleError, toHex } from './tuya-ble.js?v=20260916-8';
-import { describeError } from './web-bluetooth.js?v=20260916-8';
+import { DpType, TuyaBleSession, TuyaBleError, toHex } from './tuya-ble.js?v=20260916-9';
+import { describeError } from './web-bluetooth.js?v=20260916-9';
 
 // Datapoints for the Fingerbot Plus (Tuya category "szjqr"; product ids blliqpsj,
 // ndvkgsrm, yiihr7zh, neq16kgd). The original Fingerbot uses the same numbers.
@@ -38,6 +38,28 @@ const DP_LABELS = {
 const DP_TYPE_NAMES = { 0: 'raw', 1: 'bool', 2: 'value', 3: 'string', 4: 'enum', 5: 'bitmap' };
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// The on-device program (DP 121) is: 3 header bytes (kept as the device had them),
+// a step count byte, then each step is [position 0-100][duration, uint16 big-endian].
+// Format from the ha_tuya_ble project. The duration unit is the device's own (seconds
+// on the units seen); we confirm it against the hardware with a short test first.
+export function buildProgramBytes(header, steps) {
+  const head = [header?.[0] ?? 0, header?.[1] ?? 0, header?.[2] ?? 0];
+  const out = [...head, steps.length & 0xff];
+  for (const s of steps) {
+    const delay = Math.max(0, Math.min(0xffff, Math.round(s.delay)));
+    out.push(s.position & 0xff, (delay >> 8) & 0xff, delay & 0xff);
+  }
+  return Uint8Array.from(out);
+}
+
+// Turn a "press then wait" cycle into the two-step program the device loops.
+export function pressCycleSteps({ downPosition = 100, holdDelay = 1, idlePosition = 0, intervalDelay }) {
+  return [
+    { position: downPosition, delay: holdDelay },
+    { position: idlePosition, delay: intervalDelay },
+  ];
+}
 
 export class Fingerbot {
   constructor({ transport, credentials, log = () => {}, attempts = 3, settleMs = 300, stateWaitMs = 1500 }) {
@@ -96,9 +118,79 @@ export class Fingerbot {
         snapshot[id] = { type: dp.type, value: isRaw ? toHex(dp.value) : dp.value };
       }
       if (!(FINGERBOT_DP.program in snapshot)) {
-        this.log('No program datapoint reported. Set a program in the Smart Life app first, then read again.');
+        this.log('No program datapoint reported yet; try Read settings once more.');
       }
       return { snapshot, firmware: session.deviceVersion };
+    } finally {
+      session?.close('disconnected');
+      try {
+        await this.transport.disconnect();
+      } catch (err) {
+        this.log(`Disconnect: ${describeError(err)}`);
+      }
+    }
+  }
+
+  // Write a repeating program to the device and (optionally) switch it into program
+  // mode so it runs on its own, phone closed. Reads the current DP 121 to keep its
+  // 3-byte header. Returns the bytes written so the caller can show them.
+  writeProgram(options) {
+    const run = () => this.#writeProgramOnce(options);
+    const result = this.chain.then(run, run);
+    this.chain = result.catch(() => {});
+    return result;
+  }
+
+  async #writeProgramOnce({ downPosition = 100, holdDelay = 1, idlePosition = 0, intervalDelay = 720, start = true } = {}) {
+    const { uuid, localKey, deviceId } = this.credentials;
+    let session = null;
+    await this.transport.connect((bytes) => session?.onNotification(bytes));
+    try {
+      session = new TuyaBleSession({ uuid, localKey, deviceId, write: (bytes) => this.transport.write(bytes), log: this.log });
+      await session.initialize();
+      const current = await session.waitForDatapoint(FINGERBOT_DP.program, this.stateWaitMs);
+      if (!current || !(current.value instanceof Uint8Array)) {
+        throw new Error('The device did not report a program datapoint, so its header is unknown. Tap Read settings and send me the log.');
+      }
+      const header = current.value.subarray(0, 3);
+      const steps = pressCycleSteps({ downPosition, holdDelay, idlePosition, intervalDelay });
+      const program = buildProgramBytes(header, steps);
+      this.log(`Writing program ${toHex(program)} (press ${downPosition}% for ${holdDelay}, rest ${idlePosition}% for ${intervalDelay})`);
+      await session.setDatapoints([{ id: FINGERBOT_DP.program, type: DpType.RAW, value: program }]);
+      if (start) {
+        this.log('Switching the Fingerbot into program mode');
+        await session.setDatapoints([{ id: FINGERBOT_DP.mode, type: DpType.ENUM, value: FingerbotMode.PROGRAM }]);
+      }
+      await sleep(this.settleMs);
+      return { program: toHex(program), header: toHex(header) };
+    } finally {
+      session?.close('disconnected');
+      try {
+        await this.transport.disconnect();
+      } catch (err) {
+        this.log(`Disconnect: ${describeError(err)}`);
+      }
+    }
+  }
+
+  // Take the device out of program mode, back to single-press (click) mode.
+  stopProgram() {
+    const run = () => this.#stopProgramOnce();
+    const result = this.chain.then(run, run);
+    this.chain = result.catch(() => {});
+    return result;
+  }
+
+  async #stopProgramOnce() {
+    const { uuid, localKey, deviceId } = this.credentials;
+    let session = null;
+    await this.transport.connect((bytes) => session?.onNotification(bytes));
+    try {
+      session = new TuyaBleSession({ uuid, localKey, deviceId, write: (bytes) => this.transport.write(bytes), log: this.log });
+      await session.initialize();
+      this.log('Switching the Fingerbot back to click mode');
+      await session.setDatapoints([{ id: FINGERBOT_DP.mode, type: DpType.ENUM, value: FingerbotMode.CLICK }]);
+      await sleep(this.settleMs);
     } finally {
       session?.close('disconnected');
       try {

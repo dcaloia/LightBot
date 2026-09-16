@@ -53,6 +53,11 @@ export class FakeFingerbot {
     return this.dps.get(8).value;
   }
 
+  programHex() {
+    const dp = this.dps.get(121);
+    return dp && dp.value instanceof Uint8Array ? Array.from(dp.value, (b) => b.toString(16).padStart(2, '0')).join('') : null;
+  }
+
   // Phone wrote one fragment to the write characteristic.
   async write(fragment) {
     const whole = this.assembler.push(fragment);

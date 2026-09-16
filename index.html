@@ -72,6 +72,20 @@
       </div>
     </section>
 
+    <section class="card">
+      <div class="card-title">Run on the device (no phone)</div>
+      <div class="muted">Stores a repeating press on the Fingerbot itself, so it runs with this page closed. It keeps looping until you tap Stop.</div>
+      <div class="two prog-fields">
+        <label>Press depth % <input id="prog-depth" type="number" min="0" max="100" value="100"></label>
+        <label>Every (seconds) <input id="prog-interval" type="number" min="1" value="720"></label>
+      </div>
+      <div class="prog-buttons">
+        <button id="prog-test" class="secondary" type="button">Test: every 20 s</button>
+        <button id="prog-start" class="secondary" type="button">Start on device</button>
+        <button id="prog-stop" class="secondary" type="button">Stop</button>
+      </div>
+    </section>
+
     <section id="status-line" class="status" aria-live="polite"></section>
 
     <details class="log-box">
@@ -105,6 +119,6 @@
     </form>
   </dialog>
 
-  <script type="module" src="app.js?v=20260916-8"></script>
+  <script type="module" src="app.js?v=20260916-9"></script>
 </body>
 </html>

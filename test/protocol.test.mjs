@@ -23,7 +23,7 @@ import {
   toHex,
   unpackVarint,
 } from '../tuya-ble.js';
-import { Fingerbot, FINGERBOT_DP } from '../fingerbot.js';
+import { Fingerbot, FINGERBOT_DP, buildProgramBytes, pressCycleSteps } from '../fingerbot.js';
 import { FakeFingerbot, TEST_CREDENTIALS, directTransport } from './fake-device.mjs';
 
 const fx = JSON.parse(readFileSync(new URL('./fixtures.json', import.meta.url)));
@@ -254,4 +254,15 @@ test('press timeout surfaces as an error and disconnects', async () => {
   await silent.connect((b) => session?.onNotification(b));
   session = new TuyaBleSession({ ...TEST_CREDENTIALS, write: (b) => silent.write(b), responseTimeoutMs: 100 });
   await assert.rejects(session.initialize(), /no response/);
+});
+
+test('program bytes: header preserved, steps packed big-endian', () => {
+  const bytes = buildProgramBytes(Uint8Array.of(0, 1, 0), pressCycleSteps({ downPosition: 100, holdDelay: 1, idlePosition: 0, intervalDelay: 720 }));
+  // header(3) + count(1) + [100,0x00,0x01] + [0,0x02,0xD0]   (720 = 0x02D0)
+  assert.deepEqual(Array.from(bytes), [0, 1, 0, 2, 100, 0, 1, 0, 2, 208]);
+});
+
+test('program duration clamps to uint16', () => {
+  const bytes = buildProgramBytes([9, 9, 9], [{ position: 50, delay: 70000 }]);
+  assert.deepEqual(Array.from(bytes), [9, 9, 9, 1, 50, 255, 255]);
 });
