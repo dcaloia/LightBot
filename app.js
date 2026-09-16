@@ -1,13 +1,13 @@
 // The page: wires the Press button and the one-hour cycle to the Fingerbot over Web
 // Bluetooth. Keys live in this browser's localStorage only.
 
-import { WebBluetoothTransport, NoDeviceError, describeError } from './web-bluetooth.js';
-import { Fingerbot } from './fingerbot.js';
-import { CycleRunner } from './cycle.js';
-import { DEFAULT_CREDENTIALS } from './config.js';
+import { WebBluetoothTransport, NoDeviceError, describeError } from './web-bluetooth.js?v=20260916-6';
+import { Fingerbot } from './fingerbot.js?v=20260916-6';
+import { CycleRunner } from './cycle.js?v=20260916-6';
+import { DEFAULT_CREDENTIALS } from './config.js?v=20260916-6';
 
 // Bump on every deploy; shown in the footer and the log so a stale cached copy is obvious.
-export const APP_VERSION = '2026-09-16.4';
+export const APP_VERSION = '20260916-6';
 
 const CREDS_KEY = 'fingerbot.credentials';
 const CYCLE_SETTINGS_KEY = 'fingerbot.cycleSettings';

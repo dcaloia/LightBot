@@ -158,7 +158,7 @@ async function run() {
     {
       const { page, errors, context } = await newPage(browser);
       let served = TEST_CREDENTIALS;
-      await page.route('**/config.js', (route) =>
+      await page.route('**/config.js*', (route) =>
         route.fulfill({
           contentType: 'text/javascript',
           body: `export const DEFAULT_CREDENTIALS = ${JSON.stringify(served)};`,
@@ -204,7 +204,7 @@ async function run() {
     // 4b. With config.js empty, a first visit shows the setup notice and Settings works.
     {
       const { page, errors, context } = await newPage(browser);
-      await page.route('**/config.js', (route) =>
+      await page.route('**/config.js*', (route) =>
         route.fulfill({ contentType: 'text/javascript', body: "export const DEFAULT_CREDENTIALS = { deviceId: '', uuid: '', localKey: '' };" }),
       );
       await page.goto(BASE);
