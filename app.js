@@ -6,6 +6,9 @@ import { Fingerbot } from './fingerbot.js';
 import { CycleRunner } from './cycle.js';
 import { DEFAULT_CREDENTIALS } from './config.js';
 
+// Bump on every deploy; shown in the footer and the log so a stale cached copy is obvious.
+export const APP_VERSION = '2026-09-16.4';
+
 const CREDS_KEY = 'fingerbot.credentials';
 const CYCLE_SETTINGS_KEY = 'fingerbot.cycleSettings';
 const DEFAULT_CYCLE = { durationMinutes: 60, intervalMinutes: 12, pressAtStart: true };
@@ -415,6 +418,8 @@ setInterval(() => {
 // Start-up
 
 (async () => {
+  $('version').textContent = `v${APP_VERSION}`;
+  log(`Fingerbot v${APP_VERSION}`);
   if (!supported) log('Web Bluetooth is not available in this browser');
   if (!bot) log('No device keys yet; open Settings');
   if (supported) await transport.restoreDevice();
