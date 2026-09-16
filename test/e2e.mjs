@@ -225,6 +225,28 @@ async function run() {
       console.log('ok - settings dialog with empty config.js');
     }
 
+    // 4c. A bridge that throws bare values and reports short UUIDs (Bluefy) still works.
+    {
+      const storage = {
+        'fingerbot.credentials': JSON.stringify(TEST_CREDENTIALS),
+        'fingerbot.bluetoothDeviceId': 'fake-fingerbot-id',
+      };
+      const { page, errors, context } = await newPage(browser, { storage, options: { remembered: true, quirkyBridge: true } });
+      await page.goto(BASE);
+      await page.waitForFunction(() => window.__fakeBluetooth);
+      await page.click('#press-button');
+      await page.waitForFunction(() => document.querySelector('#status-line').textContent.startsWith('Pressed at'), null, { timeout: 15000 });
+      const s = await fakeState(page);
+      assert.equal(s.presses, 1);
+      const logText = await page.locator('#log').textContent();
+      assert.match(logText, /getPrimaryService failed \(unknown error\); listing services/);
+      assert.match(logText, /Services: A201/);
+      assert.match(logText, /Connected, notifications on/);
+      assert.deepEqual(errors, []);
+      await context.close();
+      console.log('ok - short-UUID bridge with bare errors');
+    }
+
     // 5. Wrong local key: the press fails visibly, nothing gets pressed.
     {
       const storage = {

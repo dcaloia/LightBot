@@ -1,7 +1,7 @@
 // The page: wires the Press button and the one-hour cycle to the Fingerbot over Web
 // Bluetooth. Keys live in this browser's localStorage only.
 
-import { WebBluetoothTransport, NoDeviceError } from './web-bluetooth.js';
+import { WebBluetoothTransport, NoDeviceError, describeError } from './web-bluetooth.js';
 import { Fingerbot } from './fingerbot.js';
 import { CycleRunner } from './cycle.js';
 import { DEFAULT_CREDENTIALS } from './config.js';
@@ -206,7 +206,7 @@ async function doPress(source) {
     setStatus(`Pressed at ${new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', second: '2-digit' })}`, 'ok');
     return result;
   } catch (err) {
-    setStatus(err.message, 'error');
+    setStatus(describeError(err), 'error');
     throw err;
   } finally {
     busy = false;
@@ -228,7 +228,7 @@ async function keepAwake(on) {
       wakeLock = null;
     }
   } catch (err) {
-    log(`Wake lock: ${err.message}`);
+    log(`Wake lock: ${describeError(err)}`);
   }
 }
 
@@ -365,15 +365,15 @@ el.forgetDevice.addEventListener('click', () => {
 // Buttons
 
 el.press.addEventListener('click', () => {
-  doPress('manual').catch((err) => log(`Press failed: ${err.message}`));
+  doPress('manual').catch((err) => log(`Press failed: ${describeError(err)}`));
 });
 
 el.pair.addEventListener('click', () => {
   pickDevice().then(
     () => setStatus(`Paired with ${transport.deviceName}`, 'ok'),
     (err) => {
-      setStatus(err.message, 'error');
-      log(`Pairing: ${err.message}`);
+      setStatus(describeError(err), 'error');
+      log(`Pairing: ${describeError(err)}`);
     },
   );
 });
@@ -388,7 +388,7 @@ el.cycleButton.addEventListener('click', async () => {
   try {
     await ensureDevice({ mayPrompt: true });
   } catch (err) {
-    setStatus(err.message, 'error');
+    setStatus(describeError(err), 'error');
     return;
   }
   cycle.durationMinutes = cycleSettings.durationMinutes;

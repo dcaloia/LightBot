@@ -6,6 +6,7 @@
 //   disconnect()
 
 import { DpType, TuyaBleSession, TuyaBleError } from './tuya-ble.js';
+import { describeError } from './web-bluetooth.js';
 
 // Datapoints for the Fingerbot Plus (Tuya category "szjqr"; product ids blliqpsj,
 // ndvkgsrm, yiihr7zh, neq16kgd). The original Fingerbot uses the same numbers.
@@ -52,7 +53,7 @@ export class Fingerbot {
         return await this.#pressOnce();
       } catch (err) {
         lastError = err;
-        this.log(`Attempt ${attempt} failed: ${err.message}`);
+        this.log(`Attempt ${attempt} failed: ${describeError(err)}`);
         if (err.name === 'NotFoundError' || err.code === 'NO_DEVICE') break; // needs user action
         if (attempt < this.attempts) await sleep(1000 * attempt);
       }
@@ -92,7 +93,7 @@ export class Fingerbot {
       try {
         await this.transport.disconnect();
       } catch (err) {
-        this.log(`Disconnect: ${err.message}`);
+        this.log(`Disconnect: ${describeError(err)}`);
       }
     }
   }

@@ -60,16 +60,27 @@ class FakeGatt {
     this.device.fingerbot.notify = null;
     this.device.emit('gattserverdisconnected', { target: this.device });
   }
-  async getPrimaryService(uuid) {
-    if (uuid !== SERVICE_UUID) throw new DOMException('No Services matching UUID', 'NotFoundError');
+  #service() {
+    const quirky = this.device.quirkyBridge;
+    const chars = [new FakeCharacteristic(quirky ? '2B10' : CHARACTERISTIC_NOTIFY, this.device), new FakeCharacteristic(quirky ? '2B11' : CHARACTERISTIC_WRITE, this.device)];
     return {
+      uuid: quirky ? 'A201' : SERVICE_UUID,
       getCharacteristic: async (cuuid) => {
-        if (cuuid !== CHARACTERISTIC_NOTIFY && cuuid !== CHARACTERISTIC_WRITE) {
-          throw new DOMException('No Characteristics matching UUID', 'NotFoundError');
-        }
-        return new FakeCharacteristic(cuuid, this.device);
+        if (quirky) throw 'no such characteristic'; // bare string, like some bridges
+        const c = chars.find((x) => x.uuid === cuuid);
+        if (!c) throw new DOMException('No Characteristics matching UUID', 'NotFoundError');
+        return c;
       },
+      getCharacteristics: async () => chars,
     };
+  }
+  async getPrimaryService(uuid) {
+    if (this.device.quirkyBridge) throw undefined; // exactly what Bluefy did: "failed: undefined"
+    if (uuid !== SERVICE_UUID) throw new DOMException('No Services matching UUID', 'NotFoundError');
+    return this.#service();
+  }
+  async getPrimaryServices() {
+    return [this.#service()];
   }
 }
 
@@ -81,12 +92,14 @@ class FakeBluetoothDevice extends Emitter {
     this.fingerbot = fingerbot;
     this.gatt = new FakeGatt(this);
     this.connects = 0;
+    this.quirkyBridge = false;
   }
 }
 
 export function installFakeBluetooth(win, options = {}) {
   const fingerbot = new FakeFingerbot({ ...TEST_CREDENTIALS, ...options });
   const device = new FakeBluetoothDevice(fingerbot);
+  device.quirkyBridge = !!options.quirkyBridge;
   const state = { fingerbot, device, requestDeviceCalls: 0, getDevicesCalls: 0, remembered: options.remembered ?? false };
   const bluetooth = {
     async requestDevice(opts) {
