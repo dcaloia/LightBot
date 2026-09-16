@@ -13,14 +13,14 @@ Two things it does:
 
 ## Using it
 
-1. Open the page on your phone: **https://dcaloia.github.io/fingerbot/**
+1. Open the page on your phone: **https://dcaloia.github.io/LightBot/**
    - **Android**: Chrome (or Edge). Web Bluetooth is built in.
    - **iPhone**: Safari has no Web Bluetooth. Install the free **Bluefy** browser
      from the App Store and open the page in it. Add it to the home screen from
      there if you like.
 2. Tap the gear and enter the three keys for your Fingerbot (see below), or open a
    one-tap setup link of the form
-   `https://dcaloia.github.io/fingerbot/#id=DEVICE_ID&uuid=UUID&key=LOCAL_KEY`.
+   `https://dcaloia.github.io/LightBot/#id=DEVICE_ID&uuid=UUID&key=LOCAL_KEY`.
    The keys are saved in that browser only; the part after `#` never leaves the phone.
 3. Tap **Pair Fingerbot** (or just **Press**). The browser shows nearby Bluetooth
    devices; pick the Fingerbot. Chrome remembers it for next time.
