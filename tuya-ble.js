@@ -12,7 +12,7 @@
 // Keys: loginKey = md5(localKey[:6]) for the DEVICE_INFO request (flag 4);
 //       sessionKey = md5(localKey[:6] + srand) for everything after (flag 5).
 
-import { md5 } from './md5.js?v=20260916-6';
+import { md5 } from './md5.js?v=20260916-7';
 
 export const SERVICE_UUID = '0000a201-0000-1000-8000-00805f9b34fb';
 export const CHARACTERISTIC_NOTIFY = '00002b10-0000-1000-8000-00805f9b34fb';

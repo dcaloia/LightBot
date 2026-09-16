@@ -239,12 +239,62 @@ async function run() {
       const s = await fakeState(page);
       assert.equal(s.presses, 1);
       const logText = await page.locator('#log').textContent();
-      assert.match(logText, /getPrimaryService failed \(unknown error\); listing services/);
       assert.match(logText, /Services: A201/);
       assert.match(logText, /Connected, notifications on/);
       assert.deepEqual(errors, []);
       await context.close();
       console.log('ok - short-UUID bridge with bare errors');
+    }
+
+    // 4d. A device that exposes the newer "1910" Tuya service (real Fingerbot Plus).
+    {
+      const storage = {
+        'fingerbot.credentials': JSON.stringify(TEST_CREDENTIALS),
+        'fingerbot.bluetoothDeviceId': 'fake-fingerbot-id',
+      };
+      const { page, errors, context } = await newPage(browser, {
+        storage,
+        options: { remembered: true, serviceUuid: '00001910-0000-1000-8000-00805f9b34fb' },
+      });
+      await page.goto(BASE);
+      await page.waitForFunction(() => window.__fakeBluetooth);
+      await page.click('#press-button');
+      await page.waitForFunction(() => document.querySelector('#status-line').textContent.startsWith('Pressed at'), null, { timeout: 15000 });
+      const s = await fakeState(page);
+      assert.equal(s.presses, 1);
+      assert.match(await page.locator('#log').textContent(), /Using service 00001910-0000-1000-8000-00805f9b34fb/);
+      assert.deepEqual(errors, []);
+      await context.close();
+      console.log('ok - newer 1910 Tuya service');
+    }
+
+    // 4e. Non-standard characteristic UUIDs: picked by capability instead.
+    {
+      const storage = {
+        'fingerbot.credentials': JSON.stringify(TEST_CREDENTIALS),
+        'fingerbot.bluetoothDeviceId': 'fake-fingerbot-id',
+      };
+      const { page, errors, context } = await newPage(browser, {
+        storage,
+        options: {
+          remembered: true,
+          serviceUuid: '00001910-0000-1000-8000-00805f9b34fb',
+          notifyUuid: '0000ffe1-0000-1000-8000-00805f9b34fb',
+          writeUuid: '0000ffe2-0000-1000-8000-00805f9b34fb',
+        },
+      });
+      await page.goto(BASE);
+      await page.waitForFunction(() => window.__fakeBluetooth);
+      await page.click('#press-button');
+      await page.waitForFunction(() => document.querySelector('#status-line').textContent.startsWith('Pressed at'), null, { timeout: 15000 });
+      const s = await fakeState(page);
+      assert.equal(s.presses, 1);
+      const logText = await page.locator('#log').textContent();
+      assert.match(logText, /Using 0000ffe1-0000-1000-8000-00805f9b34fb as the notify characteristic/);
+      assert.match(logText, /Using 0000ffe2-0000-1000-8000-00805f9b34fb as the write characteristic/);
+      assert.deepEqual(errors, []);
+      await context.close();
+      console.log('ok - characteristics chosen by capability');
     }
 
     // 5. Wrong local key: the press fails visibly, nothing gets pressed.

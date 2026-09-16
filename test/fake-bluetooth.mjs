@@ -3,6 +3,7 @@
 
 import { FakeFingerbot, TEST_CREDENTIALS } from './fake-device.mjs';
 import { SERVICE_UUID, CHARACTERISTIC_NOTIFY, CHARACTERISTIC_WRITE } from '../tuya-ble.js';
+import { sameUuid } from '../web-bluetooth.js';
 
 class Emitter {
   #listeners = new Map();
@@ -19,11 +20,12 @@ class Emitter {
 }
 
 class FakeCharacteristic extends Emitter {
-  constructor(uuid, device) {
+  constructor(uuid, device, properties) {
     super();
     this.uuid = uuid;
     this.device = device;
     this.value = null;
+    this.properties = properties || { write: true, writeWithoutResponse: true, notify: true };
   }
   async startNotifications() {
     this.device.fingerbot.notify = (bytes) => {
@@ -61,13 +63,15 @@ class FakeGatt {
     this.device.emit('gattserverdisconnected', { target: this.device });
   }
   #service() {
-    const quirky = this.device.quirkyBridge;
-    const chars = [new FakeCharacteristic(quirky ? '2B10' : CHARACTERISTIC_NOTIFY, this.device), new FakeCharacteristic(quirky ? '2B11' : CHARACTERISTIC_WRITE, this.device)];
+    const d = this.device;
+    const notify = new FakeCharacteristic(d.notifyUuid, d, { notify: true });
+    const write = new FakeCharacteristic(d.writeUuid, d, { write: true, writeWithoutResponse: true });
+    const chars = [notify, write];
     return {
-      uuid: quirky ? 'A201' : SERVICE_UUID,
+      uuid: d.serviceUuid,
       getCharacteristic: async (cuuid) => {
-        if (quirky) throw 'no such characteristic'; // bare string, like some bridges
-        const c = chars.find((x) => x.uuid === cuuid);
+        if (d.quirkyBridge) throw 'no such characteristic'; // bare string, like some bridges
+        const c = chars.find((x) => sameUuid(x.uuid, cuuid));
         if (!c) throw new DOMException('No Characteristics matching UUID', 'NotFoundError');
         return c;
       },
@@ -76,7 +80,7 @@ class FakeGatt {
   }
   async getPrimaryService(uuid) {
     if (this.device.quirkyBridge) throw undefined; // exactly what Bluefy did: "failed: undefined"
-    if (uuid !== SERVICE_UUID) throw new DOMException('No Services matching UUID', 'NotFoundError');
+    if (!sameUuid(uuid, this.device.serviceUuid)) throw new DOMException('No Services matching UUID', 'NotFoundError');
     return this.#service();
   }
   async getPrimaryServices() {
@@ -93,6 +97,9 @@ class FakeBluetoothDevice extends Emitter {
     this.gatt = new FakeGatt(this);
     this.connects = 0;
     this.quirkyBridge = false;
+    this.serviceUuid = SERVICE_UUID;
+    this.notifyUuid = CHARACTERISTIC_NOTIFY;
+    this.writeUuid = CHARACTERISTIC_WRITE;
   }
 }
 
@@ -100,6 +107,15 @@ export function installFakeBluetooth(win, options = {}) {
   const fingerbot = new FakeFingerbot({ ...TEST_CREDENTIALS, ...options });
   const device = new FakeBluetoothDevice(fingerbot);
   device.quirkyBridge = !!options.quirkyBridge;
+  if (options.quirkyBridge) {
+    // A Bluefy-like bridge reports 16-bit UUIDs in short form.
+    device.serviceUuid = 'A201';
+    device.notifyUuid = '2B10';
+    device.writeUuid = '2B11';
+  }
+  if (options.serviceUuid) device.serviceUuid = options.serviceUuid;
+  if (options.notifyUuid) device.notifyUuid = options.notifyUuid;
+  if (options.writeUuid) device.writeUuid = options.writeUuid;
   const state = { fingerbot, device, requestDeviceCalls: 0, getDevicesCalls: 0, remembered: options.remembered ?? false };
   const bluetooth = {
     async requestDevice(opts) {

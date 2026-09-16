@@ -5,8 +5,8 @@
 //   write(Uint8Array)  -> one GATT fragment to the write characteristic
 //   disconnect()
 
-import { DpType, TuyaBleSession, TuyaBleError } from './tuya-ble.js?v=20260916-6';
-import { describeError } from './web-bluetooth.js?v=20260916-6';
+import { DpType, TuyaBleSession, TuyaBleError } from './tuya-ble.js?v=20260916-7';
+import { describeError } from './web-bluetooth.js?v=20260916-7';
 
 // Datapoints for the Fingerbot Plus (Tuya category "szjqr"; product ids blliqpsj,
 // ndvkgsrm, yiihr7zh, neq16kgd). The original Fingerbot uses the same numbers.
