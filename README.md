@@ -18,8 +18,9 @@ Two things it does:
    - **iPhone**: Safari has no Web Bluetooth. Install the free **Bluefy** browser
      from the App Store and open the page in it. Add it to the home screen from
      there if you like.
-2. Tap the gear and enter the three keys for your Fingerbot (see below), or open a
-   one-tap setup link. Two forms work:
+2. If the three keys are filled in `config.js`, they load on the first visit and
+   there is nothing to enter. Otherwise tap the gear and type them (see below), or
+   open a one-tap setup link. Two forms work:
    `https://dcaloia.github.io/LightBot/#id=DEVICE_ID&uuid=UUID&key=LOCAL_KEY`, or
    `https://dcaloia.github.io/LightBot/?s=SETUP_CODE` where the setup code is the
    base64url encoding of `{"id":"…","uuid":"…","key":"…"}` (letters and digits only,
@@ -52,7 +53,10 @@ app uses):
 | Local key | `local_key` field of the same response |
 
 Only the first six characters of the local key are used by the Bluetooth protocol,
-but paste the whole thing.
+but paste the whole thing. To bake them in, put them in `config.js` and push. After a
+factory reset of the Fingerbot, re-add it in Smart Life, fetch the new local key,
+update `config.js` and push; phones that never edited Settings pick the new keys up
+automatically. `config.js` is public with the rest of the site.
 
 ## How it works
 

@@ -107,6 +107,7 @@ button.secondary, .cycle-button {
 .cycle-button { background: var(--good); color: #062; border-color: transparent; min-width: 96px; }
 .cycle-button.stop { background: var(--bad); color: #fff; }
 button[disabled] { opacity: 0.55; }
+button.small { padding: 6px 12px; font-size: 14px; min-height: 36px; margin-top: 10px; }
 
 .cycle-status { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); text-align: center; }
 .big { font-size: 40px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: 1px; }

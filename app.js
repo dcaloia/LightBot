@@ -4,6 +4,7 @@
 import { WebBluetoothTransport, NoDeviceError } from './web-bluetooth.js';
 import { Fingerbot } from './fingerbot.js';
 import { CycleRunner } from './cycle.js';
+import { DEFAULT_CREDENTIALS } from './config.js';
 
 const CREDS_KEY = 'fingerbot.credentials';
 const CYCLE_SETTINGS_KEY = 'fingerbot.cycleSettings';
@@ -30,6 +31,7 @@ const el = {
   settingsButton: $('settings-button'),
   settingsCancel: $('settings-cancel'),
   forgetDevice: $('forget-device'),
+  useDefaults: $('use-defaults'),
 };
 
 // ---------------------------------------------------------------------------
@@ -116,16 +118,36 @@ function validCredentials(c) {
   return !!(c && c.deviceId && c.uuid && c.localKey && c.localKey.length >= 6);
 }
 
+function sameCredentials(a, b) {
+  return !!a && !!b && a.deviceId === b.deviceId && a.uuid === b.uuid && a.localKey === b.localKey;
+}
+
+// Where the keys came from decides what wins later: keys typed in Settings or taken
+// from a setup link stick; keys copied from config.js are replaced whenever config.js
+// changes, so a re-paired Fingerbot only needs one push.
+function loadCredentials() {
+  const fromUrl = credentialsFromUrl();
+  if (fromUrl) {
+    writeJson(CREDS_KEY, { ...fromUrl, source: 'link' });
+    log('Keys loaded from the setup link');
+    return fromUrl;
+  }
+  const saved = readJson(CREDS_KEY);
+  if (validCredentials(saved) && (saved.source !== 'default' || sameCredentials(saved, DEFAULT_CREDENTIALS))) {
+    return saved;
+  }
+  if (validCredentials(DEFAULT_CREDENTIALS)) {
+    writeJson(CREDS_KEY, { ...DEFAULT_CREDENTIALS, source: 'default' });
+    log(saved ? 'Built-in keys changed; using the new ones' : 'Using the built-in keys');
+    return { ...DEFAULT_CREDENTIALS };
+  }
+  return null;
+}
+
 // ---------------------------------------------------------------------------
 // State
 
-let credentials = credentialsFromUrl();
-if (credentials) {
-  writeJson(CREDS_KEY, credentials);
-  log('Keys loaded from the setup link');
-} else {
-  credentials = readJson(CREDS_KEY);
-}
+let credentials = loadCredentials();
 let cycleSettings = { ...DEFAULT_CYCLE, ...(readJson(CYCLE_SETTINGS_KEY) || {}) };
 
 const supported = WebBluetoothTransport.isSupported();
@@ -305,7 +327,7 @@ el.settingsForm.addEventListener('submit', (event) => {
     return;
   }
   credentials = next;
-  writeJson(CREDS_KEY, credentials);
+  writeJson(CREDS_KEY, { ...credentials, source: 'manual' });
   bot = new Fingerbot({ transport, credentials, log });
 
   const duration = Number(f.durationMinutes.value);
@@ -325,6 +347,13 @@ el.settingsForm.addEventListener('submit', (event) => {
 });
 
 el.settingsButton.addEventListener('click', openSettings);
+el.useDefaults.hidden = !validCredentials(DEFAULT_CREDENTIALS);
+el.useDefaults.addEventListener('click', () => {
+  const f = el.settingsForm;
+  f.deviceId.value = DEFAULT_CREDENTIALS.deviceId;
+  f.uuid.value = DEFAULT_CREDENTIALS.uuid;
+  f.localKey.value = DEFAULT_CREDENTIALS.localKey;
+});
 el.settingsCancel.addEventListener('click', () => el.settings.close());
 el.forgetDevice.addEventListener('click', () => {
   transport.forgetDevice();

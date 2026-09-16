@@ -27,7 +27,7 @@
 
     <section id="setup-notice" class="notice" hidden>
       <strong>Enter your Fingerbot's keys first.</strong>
-      <p>Tap the gear and fill in the device id, uuid and local key from the Tuya IoT platform.</p>
+      <p>Tap the gear and fill in the device id, uuid and local key from the Tuya IoT platform, or put them in config.js.</p>
     </section>
 
     <section class="press-area">
@@ -73,10 +73,11 @@
   <dialog id="settings">
     <form method="dialog" id="settings-form">
       <h2>Settings</h2>
-      <p class="muted">Values from the Tuya IoT platform's device details. They are stored only in this browser.</p>
+      <p class="muted">Values from the Tuya IoT platform's device details. Built-in ones (config.js) load automatically; anything you change here is stored only in this browser.</p>
       <label>Device id <input name="deviceId" autocomplete="off" autocapitalize="off" spellcheck="false" required placeholder="eb…"></label>
       <label>UUID <input name="uuid" autocomplete="off" autocapitalize="off" spellcheck="false" required placeholder="tuya…" minlength="16" maxlength="16"></label>
       <label>Local key <input name="localKey" autocomplete="off" autocapitalize="off" spellcheck="false" required placeholder="16 characters"></label>
+      <button type="button" id="use-defaults" class="secondary small">Fill in the built-in keys</button>
       <h3>Cycle</h3>
       <div class="two">
         <label>Length (minutes) <input name="durationMinutes" type="number" min="1" step="any" value="60" required></label>

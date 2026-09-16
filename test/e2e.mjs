@@ -89,7 +89,9 @@ async function run() {
       await page.goto(`${BASE}?s=${code}`);
       await page.waitForFunction(() => window.__fakeBluetooth);
       assert.equal(await page.evaluate(() => location.search + location.hash), '');
-      assert.deepEqual(await page.evaluate(() => JSON.parse(localStorage.getItem('fingerbot.credentials'))), TEST_CREDENTIALS);
+      const stored = await page.evaluate(() => JSON.parse(localStorage.getItem('fingerbot.credentials')));
+      assert.deepEqual({ deviceId: stored.deviceId, uuid: stored.uuid, localKey: stored.localKey }, TEST_CREDENTIALS);
+      assert.equal(stored.source, 'link');
       assert.equal(await page.locator('#press-button').isEnabled(), true);
       // The page's own encoder produces the same code.
       const encoded = await page.evaluate(async (c) => (await import('/app.js')).encodeSetupCode(c), TEST_CREDENTIALS);
@@ -151,25 +153,76 @@ async function run() {
       console.log('ok - reload resumes, stop ends');
     }
 
-    // 4. No keys yet: notice shown, Press disabled, settings dialog saves keys.
+    // 4. Built-in keys. config.js is swapped for one carrying the test keys, so the
+    //    scenario does not depend on what the real file holds.
     {
       const { page, errors, context } = await newPage(browser);
+      let served = TEST_CREDENTIALS;
+      await page.route('**/config.js', (route) =>
+        route.fulfill({
+          contentType: 'text/javascript',
+          body: `export const DEFAULT_CREDENTIALS = ${JSON.stringify(served)};`,
+        }),
+      );
+      await page.goto(BASE);
+      await page.waitForFunction(() => window.__fakeBluetooth);
+      assert.equal(await page.locator('#setup-notice').isHidden(), true, 'no setup notice with built-in keys');
+      assert.equal(await page.locator('#press-button').isEnabled(), true);
+      let saved = await page.evaluate(() => JSON.parse(localStorage.getItem('fingerbot.credentials')));
+      assert.equal(saved.source, 'default');
+      assert.equal(saved.localKey, TEST_CREDENTIALS.localKey);
+      await page.click('#press-button');
+      await page.waitForFunction(() => window.__fakeBluetooth.fingerbot.presses.length === 1, null, { timeout: 15000 });
+
+      // config.js changes (re-paired Fingerbot): the stored built-in copy is replaced.
+      served = { ...TEST_CREDENTIALS, localKey: 'newkey0000000000' };
+      await page.reload();
+      await page.waitForFunction(() => window.__fakeBluetooth);
+      saved = await page.evaluate(() => JSON.parse(localStorage.getItem('fingerbot.credentials')));
+      assert.equal(saved.localKey, 'newkey0000000000', 'new built-in keys replace stale built-in keys');
+
+      // Keys typed in Settings stick across reloads even though config.js differs.
+      await page.click('#settings-button');
+      await page.fill('input[name=localKey]', TEST_CREDENTIALS.localKey);
+      await page.click('#settings button[type=submit]');
+      await page.reload();
+      await page.waitForFunction(() => window.__fakeBluetooth);
+      saved = await page.evaluate(() => JSON.parse(localStorage.getItem('fingerbot.credentials')));
+      assert.equal(saved.source, 'manual');
+      assert.equal(saved.localKey, TEST_CREDENTIALS.localKey, 'manual keys are kept');
+
+      // The "fill in the built-in keys" button restores config.js values in the form.
+      await page.click('#settings-button');
+      await page.click('#use-defaults');
+      assert.equal(await page.inputValue('input[name=localKey]'), 'newkey0000000000');
+      await page.click('#settings-cancel');
+      assert.deepEqual(errors, []);
+      await context.close();
+      console.log('ok - built-in keys load by default; updates and manual keys behave');
+    }
+
+    // 4b. With config.js empty, a first visit shows the setup notice and Settings works.
+    {
+      const { page, errors, context } = await newPage(browser);
+      await page.route('**/config.js', (route) =>
+        route.fulfill({ contentType: 'text/javascript', body: "export const DEFAULT_CREDENTIALS = { deviceId: '', uuid: '', localKey: '' };" }),
+      );
       await page.goto(BASE);
       await page.waitForFunction(() => window.__fakeBluetooth);
       assert.equal(await page.locator('#setup-notice').isVisible(), true);
       assert.equal(await page.locator('#press-button').isEnabled(), false);
       await page.click('#settings-button');
+      assert.equal(await page.locator('#use-defaults').isHidden(), true, 'no built-in button without built-in keys');
       await page.fill('input[name=deviceId]', TEST_CREDENTIALS.deviceId);
       await page.fill('input[name=uuid]', TEST_CREDENTIALS.uuid);
       await page.fill('input[name=localKey]', TEST_CREDENTIALS.localKey);
       await page.click('#settings button[type=submit]');
       assert.equal(await page.locator('#setup-notice').isHidden(), true);
-      assert.equal(await page.locator('#press-button').isEnabled(), true);
       await page.click('#press-button');
       await page.waitForFunction(() => window.__fakeBluetooth.fingerbot.presses.length === 1, null, { timeout: 15000 });
       assert.deepEqual(errors, []);
       await context.close();
-      console.log('ok - settings dialog');
+      console.log('ok - settings dialog with empty config.js');
     }
 
     // 5. Wrong local key: the press fails visibly, nothing gets pressed.
